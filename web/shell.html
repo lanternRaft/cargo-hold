@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1c232c">
+<base href="$MAGICBOX_ASSET_BASE/">
+<title>Cargo Hold</title>
+<style>
+:root{color-scheme:dark;font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e8edf3;background:#1c232c}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}body{height:100dvh;min-height:100svh}
+main{position:absolute;inset:0}canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
+#startup{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:30px;background:#1c232c;z-index:2}#startup[hidden]{display:none}#startup p{max-width:340px;line-height:1.6}progress{accent-color:#ff791f;width:220px;margin:auto}
+#motion-prompt{position:absolute;inset:0;z-index:1;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));background:#111820b8}#motion-prompt[hidden]{display:none}
+.motion-card{width:min(100%,360px);padding:28px;border:1px solid #697683;border-radius:18px;background:#232d38;box-shadow:0 16px 60px #0006;text-align:center}.motion-card h1{margin:0 0 12px;font-size:24px}.motion-card p{margin:0 0 22px;line-height:1.5;color:#cbd5df}.motion-card button{display:block;width:100%;min-height:48px;padding:12px 16px;border:0;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;background:#ff791f;color:#171c23}.motion-card button+button{margin-top:10px;background:#394755;color:#e8edf3}.motion-card button:disabled{opacity:.6;cursor:wait}.motion-card button:focus-visible{outline:3px solid #e8edf3;outline-offset:3px}.motion-card button[hidden]{display:none}
+</style>
+<style>
+#motion-prompt[data-input="mouse"] #motion-enable{background:#394755;color:#e8edf3}#motion-prompt[data-input="mouse"] #motion-skip{background:#ff791f;color:#171c23}
+</style>
+$GODOT_HEAD_INCLUDE
+</head>
+<body>
+<main><canvas id="canvas" tabindex="0" aria-label="Cargo Hold enclosed box. Drag a shape to grab and throw; drag empty space to tilt."></canvas><div id="startup" role="status"><p id="startup-message">Opening the cargo hold…</p><progress id="progress"></progress></div></main>
+<div id="motion-prompt" role="dialog" aria-modal="true" aria-labelledby="motion-title" aria-describedby="motion-status" hidden inert><div class="motion-card"><h1 id="motion-title">Tilt &amp; shake</h1><p id="motion-status" role="status" aria-live="polite">Enable motion to move the cargo with your phone.</p><button id="motion-enable" type="button">Enable motion</button><button id="motion-skip" type="button">Continue with touch</button></div></div>
+<script src="motion.js"></script>
+<script src="$MAGICBOX_ENGINE_BASE/$GODOT_URL"></script>
+<script>
+const config=$GODOT_CONFIG;
+const engineBase='$MAGICBOX_ENGINE_BASE/';
+config.mainPack=config.mainPack||config.executable+'.pck';
+config.executable=engineBase+config.executable;
+// Keep extension preloads keyed by basename: OS_Web calls dlopen(basename).
+// The base URL resolves their fetches to versioned content without renaming them.
+config.fileSizes=Object.fromEntries(Object.entries(config.fileSizes||{}).map(([name,size])=>[(name==='index.wasm'||name==='index.side.wasm'?engineBase:'')+name,size]));
+const canvas=document.getElementById('canvas');
+function resizeCanvas(){const rect=canvas.getBoundingClientRect();const ratio=window.devicePixelRatio||1;canvas.width=Math.round(rect.width*ratio);canvas.height=Math.round(rect.height*ratio);}
+resizeCanvas();
+new ResizeObserver(resizeCanvas).observe(document.querySelector('main'));
+const message=document.getElementById('startup-message');
+const overlay=document.getElementById('startup');
+function fail(text){message.textContent=text;document.getElementById('progress').hidden=true;}
+(async()=>{
+ if(!window.CargoHold){fail('The motion script is missing. Export with python3 tools/export_web.py, then preview with python3 tools/serve.py.');return;}
+ if(!config.gdextensionLibs?.some(name=>name.includes('libbox3d_godot.web.template_release'))){fail('This preview needs the Box3D threaded release export. Run python3 tools/export_web.py, then python3 tools/serve.py. Godot Run in Browser exports an unsupported debug build.');return;}
+ if(!isSecureContext){fail('This box needs HTTPS. On this computer, open it through localhost.');return;}
+ if(!crossOriginIsolated||typeof SharedArrayBuffer==='undefined'){fail('This host needs cross-origin isolation (COOP and COEP response headers) to open the box.');return;}
+ const probe=document.createElement('canvas');const gl=probe.getContext('webgl2');
+ if(!gl){fail('WebGL 2 is unavailable. Try a browser with hardware graphics enabled.');return;}
+ gl.getExtension('WEBGL_lose_context')?.loseContext();
+ const engine=new Engine(config);
+ try {
+  await engine.startGame({canvas:document.getElementById('canvas'),onProgress:(current,total)=>{const p=document.getElementById('progress');if(total>0){p.max=total;p.value=current;}}});
+  overlay.hidden=true;
+  CargoHold.focusPrompt();
+  setTimeout(()=>{if(!CargoHold.diagnostics.report) {overlay.hidden=false;fail('The physics extension did not start. Check the release assets and threaded Godot templates.');}},12000);
+ } catch(error){fail('Could not open the box: '+String(error.message||error));}
+})();
+</script>
+</body></html>

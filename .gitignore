@@ -1,0 +1,13 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+.DS_Store
+
+# Generated application artifacts
+build/
+reports/
+hosting/dist/
+hosting/.sites/
+hosting/.git/
+*.log
+__pycache__/
