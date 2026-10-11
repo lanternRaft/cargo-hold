@@ -1,8 +1,8 @@
 # Cargo Hold
 
-Web toy inspired by u/nathan82 post "Rigid body sim on mobile with Box3D" onto r/Simulated on 2026-10-09
+Web toy inspired by `u/nathan82` post "Rigid body sim on mobile with Box3D" onto `r/Simulated` on 2026-10-09
 
-![screenshot](cargo_hold_screenshot.jpg)
+<img src="docs/cargo_hold_screenshot.jpg" alt="screenshot" width="300">
 
 ## Details
 A Godot web toy with 100 small space cargo spheres, cubes, capsules, and cylinders
